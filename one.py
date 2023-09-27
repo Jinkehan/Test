@@ -87,7 +87,7 @@ class Pdf:
         self.pdf = file
         self.heightIndex = height - used_height - font_size
 
-    def add_paragraph(self, input_text_list, input_font, font_size, color):
+    def add_paragraph(self, input_text_list, paragraph_title, input_font, font_size, color):
         from reportlab.platypus import Paragraph
         from reportlab.lib.styles import ParagraphStyle
         # Declare Variables
@@ -99,59 +99,52 @@ class Pdf:
             input_font = self.font
         if color == 0:
             color = self.color
-        # Print paragraph title
-
+        if not paragraph_title == 0:
+            title_style = ParagraphStyle('title_style',
+                                         fontName=input_font,
+                                         fontSize=font_size + 2,
+                                         leading=(font_size + 2) * 1.2,
+                                         textColor=color)
+            title = Paragraph(paragraph_title, title_style)
+            allowed_height = height - 60 - (font_size + 2) * 1.2
+            a, used_height = title.wrap(self.canvasWidth, allowed_height)
+            if used_height > allowed_height:
+                # Add new page
+                file.showPage()
+                self.page += 1
+                page_number = file.beginText(300, 20)
+                page_number.setFont(font.helvetica, 12)
+                page_number.textLine(str(self.page))
+                file.drawText(page_number)
+                height = self.startHeight
+                ###
+            title.drawOn(file, 40, height)
+            height -= used_height + (font_size + 2) * 1.2
         # Create paragraph from input_text_list
-        input_text = ''
+        """input_text = ''
         for t in input_text_list:
             t = t.strip()
             helper_string = ' &nbsp;'
             for i in range(3):
                 helper_string += ' &nbsp;'
             text = helper_string + t
-            input_text += text + '<BR/>'
+            input_text += text + '\n'"""
+
         # Modify python code
-        input_text = '<p>' + input_text.replace('\n', '<BR/>') + '</p>'
-        # Set style
-        my_style = ParagraphStyle('My Para style',
-                                  fontName=input_font,
-                                  fontSize=font_size,
-                                  leading=font_size * 1.2,
-                                  textColor=color)
-        allowed_height = height - 60 - font_size * 1.2
-        # Create Paragraph object from input_text
-        paragraph = Paragraph(input_text, my_style)
-        paragraph_list = [paragraph]
-        a, used_height = paragraph.wrap(self.canvasWidth, allowed_height)
-        if allowed_height < 0:
-            file.showPage()
-            self.page += 1
-            # Add page number
-            page_number = file.beginText(300, 20)
-            page_number.setFont(font.helvetica, 12)
-            page_number.textLine(str(self.page))
-            file.drawText(page_number)
-            ###
-            allowed_height = self.canvasHeight
-        # Split paragraph if needed
-        while used_height > allowed_height:
-            helper_paragraph = paragraph_list[len(paragraph_list) - 1]
-            paragraph_list.pop(len(paragraph_list) - 1)
-            helper_list = helper_paragraph.split(self.canvasWidth, allowed_height)
-            for p in helper_list:
-                paragraph_list.append(p)
-            if len(paragraph_list) == 0:
-                paragraph_list.append(helper_paragraph)
-                break
-            helper_paragraph_two = paragraph_list[len(paragraph_list) - 1]
-            a, used_height = helper_paragraph_two.wrap(self.canvasWidth, self.canvasHeight)
-            allowed_height = self.canvasHeight
-        # Print paragraph_list
-        for p in range(len(paragraph_list)):
-            a, used_height = paragraph_list[p].wrap(self.canvasWidth, self.canvasHeight)
-            height = self.heightIndex - font_size * 1.2 - used_height
-            paragraph_list[p].drawOn(file, 40, height)
-            if not p == len(paragraph_list) - 1:
+        for text in input_text_list:
+            text = '<p>' + text + '</p>'
+            # Set style
+            my_style = ParagraphStyle('My Para style',
+                                      fontName=input_font,
+                                      fontSize=font_size,
+                                      leading=font_size * 1.2,
+                                      textColor=color)
+            allowed_height = height - 60 - font_size * 1.2
+            # Create Paragraph object from input_text
+            paragraph = Paragraph(text, my_style)
+            paragraph_list = [paragraph]
+            a, used_height = paragraph.wrap(self.canvasWidth, allowed_height)
+            if allowed_height < 0:
                 file.showPage()
                 self.page += 1
                 # Add page number
@@ -160,7 +153,35 @@ class Pdf:
                 page_number.textLine(str(self.page))
                 file.drawText(page_number)
                 ###
-                self.heightIndex = self.startHeight
+                allowed_height = self.canvasHeight
+            # Split paragraph if needed
+            while used_height > allowed_height:
+                helper_paragraph = paragraph_list[len(paragraph_list) - 1]
+                paragraph_list.pop(len(paragraph_list) - 1)
+                helper_list = helper_paragraph.split(self.canvasWidth, allowed_height)
+                for p in helper_list:
+                    paragraph_list.append(p)
+                if len(paragraph_list) == 0:
+                    paragraph_list.append(helper_paragraph)
+                    break
+                helper_paragraph_two = paragraph_list[len(paragraph_list) - 1]
+                a, used_height = helper_paragraph_two.wrap(self.canvasWidth, self.canvasHeight)
+                allowed_height = self.canvasHeight
+            # Print paragraph_list
+            for p in range(len(paragraph_list)):
+                a, used_height = paragraph_list[p].wrap(self.canvasWidth, self.canvasHeight)
+                height = self.heightIndex - font_size * 1.2 - used_height
+                paragraph_list[p].drawOn(file, 40, height)
+                if not p == len(paragraph_list) - 1:
+                    file.showPage()
+                    self.page += 1
+                    # Add page number
+                    page_number = file.beginText(300, 20)
+                    page_number.setFont(font.helvetica, 12)
+                    page_number.textLine(str(self.page))
+                    file.drawText(page_number)
+                    ###
+                    self.heightIndex = self.startHeight
         # Save variables
         self.pdf = file
         self.heightIndex = height - font_size * 2
@@ -277,11 +298,11 @@ input_text = []
 input_text.append('Neat own nor she said see walk. And charm add green you these. Sang busy in this drew ye fine. At greater prepare musical so attacks as on distant. Improving age our her cordially intention. His devonshire sufficient precaution say preference middletons insipidity. Since might water hence the her worse. Concluded it offending dejection do earnestly as me direction. Nature played thirty all him.')
 input_text.append('So delightful up dissimilar by unreserved it connection frequently. Do an high room so in paid. Up on cousin ye dinner should in. Sex stood tried walls manor truth shy and three his. Their to years so child truth. Honoured peculiar families sensible up likewise by on in.')
 input_text.append('Old there any widow law rooms. Agreed but expect repair she nay sir silent person. Direction can dependent one bed situation attempted. His she are man their spite avoid. Her pretended fulfilled extremely education yet. Satisfied did one admitting incommode tolerably how are.')
+input_text.append('1')
 text_title = 'Random Text'
 
-print('asdf')
-for i in range(3):
-    pdf.add_paragraph(input_text, 0, 0, 0)
+for i in range(1):
+    pdf.add_paragraph(input_text, text_title, 0, 0, 0)
 """## Add subtitle
 sub_title = 'Hello World'
 for i in range(1):
